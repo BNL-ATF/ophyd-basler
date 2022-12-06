@@ -1,0 +1,73 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  run_tests:
+    name: Test pylon camera
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+        pylon-version: ["5.2.0.13457-deb0_amd64"]
+      fail-fast: false
+    env:
+      TZ: America/New_York
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - name: Set env vars
+        run: |
+          export REPOSITORY_NAME=${GITHUB_REPOSITORY#*/}  # just the repo, as opposed to org/repo
+          echo "REPOSITORY_NAME=${REPOSITORY_NAME}" >> $GITHUB_ENV
+
+          export PYLON_CAMEMU=2
+          echo "PYLON_CAMEMU=${PYLON_CAMEMU}" >> $GITHUB_ENV
+
+          export PYLON_ROOT="/opt/pylon5"
+          echo "PYLON_ROOT=${PYLON_ROOT}" >> $GITHUB_ENV
+          
+      - name: Checkout the code
+        uses: actions/checkout@v3
+
+      - name: Install Pylon .deb package
+        run: |
+          # For reference: https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html.
+          set -vxeuo pipefail
+          wget --progress=dot:mega ${{ secrets.PYLON_DOWNLOAD_URL_BASE }}/pylon_${{ matrix.pylon-version }}.deb -O pylon.deb
+          sudo dpkg -i pylon.deb
+
+      - name: Set up Python ${{ matrix.python-version }} with conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: ${{ env.REPOSITORY_NAME }}-py${{ matrix.python-version }}
+          auto-update-conda: true
+          miniconda-version: "latest"
+          python-version: ${{ matrix.python-version }}
+          mamba-version: "*"
+          channels: conda-forge
+
+      - name: Install the package and its dependencies
+        run: |
+          # set -vxeuo pipefail
+          # Do not check for unbound variables (the '-u' flag) as it fails on
+          # conda deactivate command:
+          # /usr/share/miniconda3/envs/sirepo-bluesky-py3.9/etc/conda/deactivate.d/glib_deactivate.sh:
+          # line 1: GSETTINGS_SCHEMA_DIR_CONDA_BACKUP: unbound variable
+          set -vxeo pipefail
+          conda env list
+          mamba install -c conda-forge -y numpy matplotlib
+          pip install -v pypylon
+          pip list
+          conda list
+
+      - name: Test the code
+        run: |
+          set -vxuo pipefail
+          wget ${{ secrets.PYLON_GRAB_SCRIPT }}/pylon_grab.py -O pylon_grab.py
+          python pylon_grab.py

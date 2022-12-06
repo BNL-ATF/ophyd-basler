@@ -1,2 +1,12 @@
 # List required packages in this file, one per line.
-pypylon
+area-detector-handlers
+bluesky
+databroker
+event_model
+ipython
+matplotlib
+numpy
+ophyd
+pymongo
+tfs-pandas
+unyt
