@@ -28,7 +28,7 @@ class BaslerCamera(Device):
     shape    = Cpt(Signal, kind="normal")
     exposure = Cpt(Signal, value=10, kind="config")
 
-    def __init__(self, name='basler_cam', root_dir='/tmp/basler', **kwargs): # where should root_dir be?
+    def __init__(self, name='basler_cam', root_dir='/tmp/basler', cam_num=0, **kwargs): # where should root_dir be?
         super().__init__(name=name, **kwargs)
 
         self._root_dir = root_dir
@@ -44,7 +44,7 @@ class BaslerCamera(Device):
         number_of_devices = len(device_info_list)
         print(f"{number_of_devices = }")
 
-        self.device_info = device_info_list[0]
+        self.device_info = device_info_list[cam_num]
         self.device = transport_layer_factory.CreateDevice(self.device_info)
         self.camera_object = pylon.InstantCamera(self.device)
 
