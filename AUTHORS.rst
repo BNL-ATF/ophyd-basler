@@ -5,7 +5,7 @@ Credits
 Maintainer
 ----------
 
-* Brookhaven National Lab <tmorris@bnl.gov>
+* Thomas Morris <tmorris@bnl.gov>
 
 Contributors
 ------------
