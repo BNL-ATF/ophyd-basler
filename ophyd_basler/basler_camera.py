@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from . import ExternalFileReference
-from .basler_handler import read_shadow_file
+from .basler_handler import BaslerCamHDF5Handler
 
 from pypylon import pylon
 from pathlib import Path
@@ -18,8 +18,6 @@ from ophyd import Device, Signal
 from ophyd.sim import NullStatus, new_uid
 from area_detector_handlers.handlers import HandlerBase
 from event_model import compose_resource
-
-os.environ['PYLON_CAMEMU'] = "1"
 
 logger = logging.getLogger("basler")
 
@@ -180,8 +178,8 @@ class BaslerCamera(Device):
 
     def unstage(self):
         super().unstage()
-        del self._dataset
-        self._h5file_desc.close()
+        #del self._dataset
+        #self._h5file_desc.close()
         self._resource_document = None
         self._datum_factory = None
 
