@@ -62,6 +62,8 @@ jobs:
           set -vxeo pipefail
           conda env list
           mamba install -c conda-forge -y numpy matplotlib
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
           pip install -v pypylon
           pip list
           conda list
