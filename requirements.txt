@@ -8,5 +8,6 @@ matplotlib
 numpy
 ophyd
 pymongo
+pypylon
 tfs-pandas
 unyt
