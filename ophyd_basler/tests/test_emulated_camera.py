@@ -6,7 +6,7 @@ import bluesky.plans as bp
 
 import pytest
 
-def test_emulated_basler_camera(RE, db):
+def test_emulated_basler_camera(RE, db, make_dirs):
 
     os.environ['PYLON_CAMEMU'] = "1"
 
