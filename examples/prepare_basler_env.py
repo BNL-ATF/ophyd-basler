@@ -1,6 +1,7 @@
 from ophyd_basler.basler_camera import BaslerCamera
 from ophyd_basler.basler_handler import BaslerCamHDF5Handler
 
+import os
 import numpy as np
 import bluesky.plans as bp
 from bluesky.callbacks import best_effort
@@ -21,14 +22,3 @@ RE.subscribe(bec)
 db = Broker.named('temp')
 
 RE.subscribe(db.insert)
-
-cam = BaslerCamera()
-
-db.reg.register_handler("BASLER_CAM_HDF5", BaslerCamHDF5Handler, overwrite=True)
-
-uid, = RE(bp.count([cam]))
-
-hdr = db[uid]
-
-print(np.array(list(hdr.data(field='basler_cam_image', fill=True))).shape)
-

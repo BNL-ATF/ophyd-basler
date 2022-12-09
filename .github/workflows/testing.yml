@@ -69,5 +69,4 @@ jobs:
       - name: Test the code
         run: |
           set -vxuo pipefail
-          wget ${{ secrets.PYLON_GRAB_SCRIPT }}/pylon_grab.py -O pylon_grab.py
-          python pylon_grab.py
+          pytest
