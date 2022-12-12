@@ -62,7 +62,7 @@ jobs:
           set -vxeo pipefail
           conda env list
           mamba install -c conda-forge -y numpy matplotlib
-          pip install -r requirements.txt
+          pip install -v .
           pip install -r requirements-dev.txt
           pip list
           conda list
@@ -70,4 +70,4 @@ jobs:
       - name: Test the code
         run: |
           set -vxuo pipefail
-          pytest -vv -s
+          pytest

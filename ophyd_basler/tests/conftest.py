@@ -12,7 +12,8 @@ import pytest
 
 @pytest.fixture(scope="function")
 def db():
-    """Return a data broker
+    """
+    Return a data broker
     """
 
     db = Broker.named('temp')
