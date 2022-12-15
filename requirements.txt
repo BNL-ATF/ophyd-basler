@@ -2,7 +2,7 @@
 area-detector-handlers
 bluesky
 databroker
-event_model
+event-model
 h5py
 ipython
 matplotlib
