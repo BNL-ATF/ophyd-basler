@@ -1,4 +1,3 @@
-import datetime
 from datetime import datetime
 
 import pytest
@@ -16,7 +15,7 @@ def db():
     Return a data broker
     """
 
-    db = Broker.named('temp')
+    db = Broker.named("temp")
     db.reg.register_handler("BASLER_CAM_HDF5", BaslerCamHDF5Handler, overwrite=True)
 
     return db
@@ -37,5 +36,5 @@ def RE(db):
 @pytest.fixture(scope="function")
 def make_dirs():
 
-    root_dir = '/tmp/basler'
+    root_dir = "/tmp/basler"
     _ = make_dir_tree(datetime.now().year, base_path=root_dir)
