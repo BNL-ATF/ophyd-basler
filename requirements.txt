@@ -3,11 +3,9 @@ area-detector-handlers
 bluesky
 databroker
 event_model
+h5py
 ipython
 matplotlib
 numpy
-ophyd
-pymongo
+ophyd   
 pypylon
-tfs-pandas
-unyt
