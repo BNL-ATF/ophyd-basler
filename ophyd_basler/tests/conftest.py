@@ -1,14 +1,14 @@
 import datetime
+from datetime import datetime
 
+import pytest
 from bluesky.callbacks import best_effort
 from bluesky.run_engine import RunEngine
 from databroker import Broker
 from ophyd.utils import make_dir_tree
-from datetime import datetime
 
 from ophyd_basler.basler_handler import BaslerCamHDF5Handler
 
-import pytest
 
 @pytest.fixture(scope="function")
 def db():

@@ -1,24 +1,22 @@
 import datetime
-import h5py
 import itertools
 import logging
 import os
+from collections import deque
+from pathlib import Path
 
+import h5py
 import matplotlib.pyplot as plt
 import numpy as np
-
-from . import ExternalFileReference
-from .basler_handler import BaslerCamHDF5Handler
-
-from pypylon import pylon
-from pathlib import Path
-from collections import deque
+from area_detector_handlers.handlers import HandlerBase
+from event_model import compose_resource
 from ophyd import Component as Cpt
 from ophyd import Device, Signal
 from ophyd.sim import NullStatus, new_uid
-from area_detector_handlers.handlers import HandlerBase
-from event_model import compose_resource
+from pypylon import pylon
 
+from . import ExternalFileReference
+from .basler_handler import BaslerCamHDF5Handler
 
 logger = logging.getLogger("basler")
 

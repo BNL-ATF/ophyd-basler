@@ -1,6 +1,6 @@
+import pandas as pd
 from ophyd import Signal
 from pypylon import pylon
-import pandas as pd
 
 from ._version import get_versions
 

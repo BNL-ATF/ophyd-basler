@@ -1,11 +1,12 @@
+import os
+
+import bluesky.plans as bp
+import numpy as np
+import pytest
+
 import ophyd_basler
 from ophyd_basler.basler_camera import BaslerCamera
 
-import os
-import numpy as np
-import bluesky.plans as bp
-
-import pytest
 
 def test_emulated_basler_camera(RE, db, make_dirs):
 
