@@ -62,12 +62,12 @@ jobs:
           set -vxeo pipefail
           conda env list
           mamba install -c conda-forge -y numpy matplotlib
-          pip install -v pypylon
+          pip install -v .
+          pip install -r requirements-dev.txt
           pip list
           conda list
 
       - name: Test the code
         run: |
           set -vxuo pipefail
-          wget ${{ secrets.PYLON_GRAB_SCRIPT }}/pylon_grab.py -O pylon_grab.py
-          python pylon_grab.py
+          pytest -s -vv
