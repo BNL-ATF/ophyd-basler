@@ -1,3 +1,4 @@
+import ophyd_basler
 from ophyd_basler.basler_camera import BaslerCamera
 from ophyd_basler.basler_handler import BaslerCamHDF5Handler
 
@@ -16,11 +17,12 @@ root_dir = '/tmp/basler'
 _ = make_dir_tree(datetime.now().year, base_path=root_dir)
 
 RE = RunEngine({})
+
+db = Broker.named('temp')
+db.reg.register_handler("BASLER_CAM_HDF5", BaslerCamHDF5Handler, overwrite=True)
+RE.subscribe(db.insert)
+
 bec = best_effort.BestEffortCallback()
 RE.subscribe(bec)
 
-db = Broker.named('temp')
-
-RE.subscribe(db.insert)
-
-
+print(ophyd_basler.available_devices())
