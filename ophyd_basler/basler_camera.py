@@ -97,7 +97,7 @@ class BaslerCamera(Device):
 
             grab_result.Release()
 
-        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} " f"grabbed {len(images)} frames")
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} grabbed {len(images)} frames")
 
         self.camera_object.StopGrabbing()
         return np.array(images)
