@@ -26,7 +26,7 @@ class BaslerCamera(Device):
 
     image             = Cpt(ExternalFileReference, kind="normal")
     mean              = Cpt(Signal, kind="hinted")
-    exposure_frames   = Cpt(Signal, value=1, kind="config") # change this to exposure time at some point
+    exposure_frames   = Cpt(Signal, value=1, kind="config")  # TODO: change this to exposure time at some point
     user_defined_name = Cpt(Signal, kind="config")
     camera_model      = Cpt(Signal, kind="config")
     serial_number     = Cpt(Signal, kind="config")

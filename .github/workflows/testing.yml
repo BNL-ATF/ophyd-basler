@@ -70,4 +70,4 @@ jobs:
       - name: Test the code
         run: |
           set -vxuo pipefail
-          pytest
+          pytest -s -vv
