@@ -18,11 +18,12 @@ _ = make_dir_tree(datetime.now().year, base_path=root_dir)
 
 RE = RunEngine({})
 
-db = Broker.named('temp')
+db = Broker.named('local')
 db.reg.register_handler("BASLER_CAM_HDF5", BaslerCamHDF5Handler, overwrite=True)
 RE.subscribe(db.insert)
 
 bec = best_effort.BestEffortCallback()
 RE.subscribe(bec)
 
-print(ophyd_basler.available_devices())
+device_metadata, devices = ophyd_basler.available_devices()
+print(device_metadata)

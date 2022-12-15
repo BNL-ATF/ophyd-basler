@@ -31,10 +31,13 @@ def available_devices():
     device_info_list = transport_layer_factory.EnumerateDevices()
     device_metadata = pd.DataFrame(columns=['user_defined_name', 'camera_model', 'serial_number', 'supported_formats'])
 
+    devices = []
+
     for device_info in device_info_list:
 
         device = transport_layer_factory.CreateDevice(device_info)
         camera_object = pylon.InstantCamera(device)
+        devices.append(camera_object)
 
         user_defined_name = camera_object.GetDeviceInfo().GetUserDefinedName()
         camera_model = camera_object.GetDeviceInfo().GetModelName()
@@ -43,4 +46,4 @@ def available_devices():
 
         device_metadata.loc[len(device_metadata)] = user_defined_name, camera_model, camera_serial_number, supported_formats
 
-    return device_metadata
+    return device_metadata, devices

@@ -36,14 +36,16 @@ class BaslerCamera(Device):
     active_format     = Cpt(Signal, kind="config")
     payload_size      = Cpt(Signal, kind="config")
 
-    def __init__(self, name='basler_cam', root_dir='/tmp/basler', cam_num=0, verbose=False, **kwargs): # where should root_dir be?
-        super().__init__(name=name, **kwargs)
+    def __init__(self, *args, root_dir='/tmp/basler', cam_num=0, pixel_format="Mono8", verbose=False, **kwargs): # where should root_dir be?
+        super().__init__(*args, **kwargs)
 
         self._root_dir = root_dir
 
         self._asset_docs_cache = deque()
         self._resource_document = None
         self._datum_factory = None
+
+        self.pixel_format = pixel_format
 
         transport_layer_factory = pylon.TlFactory.GetInstance()
         device_info_list = transport_layer_factory.EnumerateDevices()
@@ -64,12 +66,11 @@ class BaslerCamera(Device):
         self.payload_size.put(self.camera_object.PayloadSize())
 
         # these are hardcoded for now, but should make them more flexible in the future
-        self.grab_timeout = 5000 
+        self.grab_timeout = 5000
         trigger_mode = "Off"
 
         self.camera_object.TriggerMode.SetValue(trigger_mode)
-        desired_pixel_format = "Mono8"
-        self.camera_object.PixelFormat.SetValue(desired_pixel_format)
+        self.camera_object.PixelFormat.SetValue(self.pixel_format)
 
         self.camera_object.Close()
 
