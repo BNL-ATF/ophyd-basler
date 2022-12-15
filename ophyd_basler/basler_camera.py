@@ -84,7 +84,7 @@ class BaslerCamera(Device):
             print("Camera max. pixel level     :", self.pixel_level_max.get())
             print("Grab timeout                :", self.grab_timeout, "ms")
             print("Trigger mode                :", trigger_mode)
-            print("GigE transport payload size : " + "{:,}".format(self.payload_size) + " bytes")
+            print("GigE transport payload size : " + "{:,}".format(self.payload_size.get()) + " bytes")
 
     def grab_images(self):
 
