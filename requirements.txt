@@ -7,5 +7,5 @@ h5py
 ipython
 matplotlib
 numpy
-ophyd   
+ophyd
 pypylon

@@ -31,7 +31,7 @@ jobs:
 
           export PYLON_ROOT="/opt/pylon5"
           echo "PYLON_ROOT=${PYLON_ROOT}" >> $GITHUB_ENV
-          
+
       - name: Checkout the code
         uses: actions/checkout@v3
 
