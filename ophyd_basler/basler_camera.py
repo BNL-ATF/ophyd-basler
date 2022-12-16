@@ -1,42 +1,37 @@
 import datetime
-import h5py
 import itertools
 import logging
-import os
-
-import matplotlib.pyplot as plt
-import numpy as np
-
-from . import ExternalFileReference
-from .basler_handler import BaslerCamHDF5Handler
-
-from pypylon import pylon
-from pathlib import Path
 from collections import deque
+from pathlib import Path
+
+import h5py
+import numpy as np
+from event_model import compose_resource
 from ophyd import Component as Cpt
 from ophyd import Device, Signal
 from ophyd.sim import NullStatus, new_uid
-from area_detector_handlers.handlers import HandlerBase
-from event_model import compose_resource
+from pypylon import pylon
 
+from . import ExternalFileReference
 
 logger = logging.getLogger("basler")
 
+
 class BaslerCamera(Device):
 
-    image             = Cpt(ExternalFileReference, kind="normal")
-    mean              = Cpt(Signal, kind="hinted")
-    exposure_frames   = Cpt(Signal, value=1, kind="config")  # TODO: change this to exposure time at some point
+    image = Cpt(ExternalFileReference, kind="normal")
+    mean = Cpt(Signal, kind="hinted")
+    exposure_frames = Cpt(Signal, value=1, kind="config")  # TODO: change this to exposure time at some point
     user_defined_name = Cpt(Signal, kind="config")
-    camera_model      = Cpt(Signal, kind="config")
-    serial_number     = Cpt(Signal, kind="config")
-    image_shape       = Cpt(Signal, kind="config")
-    pixel_level_min   = Cpt(Signal, kind="config")
-    pixel_level_max   = Cpt(Signal, kind="config")
-    active_format     = Cpt(Signal, kind="config")
-    payload_size      = Cpt(Signal, kind="config")
+    camera_model = Cpt(Signal, kind="config")
+    serial_number = Cpt(Signal, kind="config")
+    image_shape = Cpt(Signal, kind="config")
+    pixel_level_min = Cpt(Signal, kind="config")
+    pixel_level_max = Cpt(Signal, kind="config")
+    active_format = Cpt(Signal, kind="config")
+    payload_size = Cpt(Signal, kind="config")
 
-    def __init__(self, *args, root_dir='/tmp/basler', cam_num=0, pixel_format="Mono8", verbose=False, **kwargs): # where should root_dir be?
+    def __init__(self, *args, root_dir="/tmp/basler", cam_num=0, pixel_format="Mono8", verbose=False, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._root_dir = root_dir
@@ -90,22 +85,19 @@ class BaslerCamera(Device):
     def grab_images(self):
 
         self.camera_object.StartGrabbingMax(self.exposure_frames.get())
-        counter = itertools.count()
-        images  = []
+        images = []
 
         while self.camera_object.IsGrabbing():
-            grab_result = self.camera_object.RetrieveResult(self.grab_timeout, pylon.TimeoutHandling_ThrowException)
+            grab_result = self.camera_object.RetrieveResult(
+                self.grab_timeout, pylon.TimeoutHandling_ThrowException
+            )
             if grab_result.GrabSucceeded():
                 image = grab_result.Array
-                current_frame = next(counter)
                 images.append(image)
 
             grab_result.Release()
 
-        print(
-                f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} "
-                f"grabbed {len(images)} frames"
-                )
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} grabbed {len(images)} frames")
 
         self.camera_object.StopGrabbing()
         return np.array(images)
@@ -149,8 +141,7 @@ class BaslerCamera(Device):
         )
 
         self._data_file = str(
-            Path(self._resource_document["root"])
-            / Path(self._resource_document["resource_path"])
+            Path(self._resource_document["root"]) / Path(self._resource_document["resource_path"])
         )
 
         # now discard the start uid, a real one will be added later
@@ -161,13 +152,14 @@ class BaslerCamera(Device):
 
         self._h5file_desc = h5py.File(self._data_file, "x")
         group = self._h5file_desc.create_group("/entry")
-        self._dataset = group.create_dataset("averaged",
-                                             data=np.full(fill_value=np.nan,
-                                                          shape=(1, *self.image_shape.get())),
-                                             maxshape=(None, *self.image_shape.get()),
-                                             chunks=(1, *self.image_shape.get()),
-                                             dtype="float64",
-                                             compression="lzf")
+        self._dataset = group.create_dataset(
+            "averaged",
+            data=np.full(fill_value=np.nan, shape=(1, *self.image_shape.get())),
+            maxshape=(None, *self.image_shape.get()),
+            chunks=(1, *self.image_shape.get()),
+            dtype="float64",
+            compression="lzf",
+        )
         self._counter = itertools.count()
 
         self.camera_object.Open()
@@ -176,8 +168,8 @@ class BaslerCamera(Device):
 
         self.camera_object.Close()
         super().unstage()
-        #del self._dataset
-        #self._h5file_desc.close()
+        # del self._dataset
+        # self._h5file_desc.close()
         self._resource_document = None
         self._datum_factory = None
 
@@ -186,4 +178,3 @@ class BaslerCamera(Device):
         self._asset_docs_cache.clear()
         for item in items:
             yield item
-

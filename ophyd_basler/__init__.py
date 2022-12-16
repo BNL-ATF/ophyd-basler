@@ -1,10 +1,12 @@
+import pandas as pd
 from ophyd import Signal
 from pypylon import pylon
-import pandas as pd
 
 from ._version import get_versions
-__version__ = get_versions()['version']
+
+__version__ = get_versions()["version"]
 del get_versions
+
 
 class ExternalFileReference(Signal):
     """
@@ -29,7 +31,9 @@ def available_devices():
 
     transport_layer_factory = pylon.TlFactory.GetInstance()
     device_info_list = transport_layer_factory.EnumerateDevices()
-    device_metadata = pd.DataFrame(columns=['user_defined_name', 'camera_model', 'serial_number', 'supported_formats'])
+    device_metadata = pd.DataFrame(
+        columns=["user_defined_name", "camera_model", "serial_number", "supported_formats"]
+    )
 
     devices = []
 
@@ -44,6 +48,11 @@ def available_devices():
         camera_serial_number = camera_object.GetDeviceInfo().GetSerialNumber()
         supported_formats = camera_object.PixelFormat.Symbolics
 
-        device_metadata.loc[len(device_metadata)] = user_defined_name, camera_model, camera_serial_number, supported_formats
+        device_metadata.loc[len(device_metadata)] = (
+            user_defined_name,
+            camera_model,
+            camera_serial_number,
+            supported_formats,
+        )
 
     return device_metadata, devices
