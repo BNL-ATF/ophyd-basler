@@ -168,8 +168,8 @@ class BaslerCamera(Device):
 
         self.camera_object.Close()
         super().unstage()
-        # del self._dataset
-        # self._h5file_desc.close()
+        del self._dataset
+        self._h5file_desc.close()
         self._resource_document = None
         self._datum_factory = None
 
