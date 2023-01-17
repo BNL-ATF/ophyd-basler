@@ -70,7 +70,7 @@ class BaslerCamera(Device):
 
         # this can't be less than self.camera_object.ExposureTime.Min
         # TODO: throw an exception if this is too low
-        self.camera_object.ExposureTime.SetValue(np.maximum(1e6 * self.exposure_time.get(), self.camera_object.ExposureTime.Min))
+        self.camera_object.ExposureTime.SetValue(1e6 * self.exposure_time.get())
 
         self.camera_object.Close()
 
@@ -92,7 +92,7 @@ class BaslerCamera(Device):
         self.camera_object.StartGrabbingMax(1)
 
         while self.camera_object.IsGrabbing():
-            with self.camera_object.RetrieveResult(self.grab_timeout, pylon.TimeoutHandling_ThrowException) as res:
+            with self.camera_object.RetrieveResult(self.grab_timeout.get(), pylon.TimeoutHandling_ThrowException) as res:
                 if res.GrabSucceeded():
                     image = np.array(res.Array)
                 else:
@@ -100,7 +100,7 @@ class BaslerCamera(Device):
 
         self.camera_object.StopGrabbing()
 
-        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} grab a frame")
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} grabbed a frame")
         return image
 
     def trigger(self):
