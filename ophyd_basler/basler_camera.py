@@ -1,11 +1,11 @@
 import datetime
 import itertools
 import logging
-import h5py
 import warnings
 from collections import deque
 from pathlib import Path
 
+import h5py
 import numpy as np
 from event_model import compose_resource
 from ophyd import Component as Cpt
@@ -17,12 +17,13 @@ from . import ExternalFileReference
 
 logger = logging.getLogger("basler")
 
+
 class BaslerCamera(Device):
 
     image = Cpt(ExternalFileReference, kind="normal")
     mean = Cpt(Signal, kind="hinted")
     exposure_frames = Cpt(Signal, value=1, kind="config")  # TODO: change this to exposure time at some point
-    exposure_time = Cpt(Signal, value=1.0, kind="config") # exposure time, in seconds
+    exposure_time = Cpt(Signal, value=1.0, kind="config")  # exposure time, in seconds
     user_defined_name = Cpt(Signal, kind="config")
     camera_model = Cpt(Signal, kind="config")
     serial_number = Cpt(Signal, kind="config")
@@ -68,16 +69,18 @@ class BaslerCamera(Device):
         self.camera_object.TriggerMode.SetValue(trigger_mode)
         self.camera_object.PixelFormat.SetValue(self.pixel_format)
 
-        # Exposure time can't be less than self.camera_object.ExposureTime.Min. 
+        # Exposure time can't be less than self.camera_object.ExposureTime.Min.
         # We use seconds for ophyd, and microseconds for pylon:
         min_exposure_us = self.camera_object.ExposureTimeAbs.Min
         if min_exposure_us > 1e6 * self.exposure_time.get():
             self.exposure_time.put(1e-6 * min_exposure_us)
-            warnings.warn(f'Desired exposure time ({1e6 * self.exposure_time.get()} us) is less than \
-            the minumum exposure time ({min_exposure_us} us). Proceeding with minumum exposure time.')
-        
+            warnings.warn(
+                f"Desired exposure time ({1e6 * self.exposure_time.get()} us) is less than \
+            the minumum exposure time ({min_exposure_us} us). Proceeding with minumum exposure time."
+            )
+
         self.camera_object.ExposureTimeAbs.SetValue(1e6 * self.exposure_time.get())
-        
+
         self.camera_object.Close()
 
         if verbose:
@@ -98,12 +101,14 @@ class BaslerCamera(Device):
         self.camera_object.StartGrabbingMax(1)
 
         while self.camera_object.IsGrabbing():
-            with self.camera_object.RetrieveResult(self.grab_timeout.get(), pylon.TimeoutHandling_ThrowException) as res:
+            with self.camera_object.RetrieveResult(
+                self.grab_timeout.get(), pylon.TimeoutHandling_ThrowException
+            ) as res:
 
                 if res.GrabSucceeded():
                     image = np.array(res.Array)
                 else:
-                    raise Exception('Could not grab image with pylon')
+                    raise Exception("Could not grab image with pylon")
 
         self.camera_object.StopGrabbing()
 
