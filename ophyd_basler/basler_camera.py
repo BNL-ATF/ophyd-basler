@@ -69,11 +69,13 @@ class BaslerCamera(Device):
         self.camera_object.TriggerMode.SetValue(trigger_mode)
         self.camera_object.PixelFormat.SetValue(self.pixel_format)
 
-        # Exposure time can't be less than self.camera_object.ExposureTime.Min. We use seconds for ophyd, and microseconds for pylon:
-        if self.camera_object.ExposureTimeAbs.Min > 1e6 * self.exposure_time.get():
-            self.exposure_time.put(1e-6 * self.camera_object.ExposureTimeAbs.Min)
-            warnings.warn(f'Desired exposure time ({1e6 * self.exposure_time.get()} us) is less than the minumum exposure time \
-            ({self.camera_object.ExposureTimeAbs.Min} us). Proceeding with minumum exposure time.')
+        # Exposure time can't be less than self.camera_object.ExposureTime.Min. 
+        # We use seconds for ophyd, and microseconds for pylon:
+        min_exposure_us = self.camera_object.ExposureTimeAbs.Min
+        if min_exposure_us > 1e6 * self.exposure_time.get():
+            self.exposure_time.put(1e-6 * min_exposure_us)
+            warnings.warn(f'Desired exposure time ({1e6 * self.exposure_time.get()} us) is less than \
+            the minumum exposure time ({min_exposure_us} us). Proceeding with minumum exposure time.')
         
         self.camera_object.ExposureTimeAbs.SetValue(1e6 * self.exposure_time.get())
         
@@ -98,6 +100,7 @@ class BaslerCamera(Device):
 
         while self.camera_object.IsGrabbing():
             with self.camera_object.RetrieveResult(self.grab_timeout.get(), pylon.TimeoutHandling_ThrowException) as res:
+                
                 if res.GrabSucceeded():
                     image = np.array(res.Array)
                 else:
@@ -105,7 +108,7 @@ class BaslerCamera(Device):
 
         self.camera_object.StopGrabbing()
 
-        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} grabbed a frame")
+        # print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} grabbed a frame with pylon")
         return image
 
     def trigger(self):
