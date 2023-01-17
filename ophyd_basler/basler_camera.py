@@ -1,11 +1,11 @@
 import datetime
 import itertools
 import logging
+import h5py
+import warnings
 from collections import deque
 from pathlib import Path
 
-import h5py
-import warnings
 import numpy as np
 from event_model import compose_resource
 from ophyd import Component as Cpt
@@ -16,7 +16,6 @@ from pypylon import pylon
 from . import ExternalFileReference
 
 logger = logging.getLogger("basler")
-
 
 class BaslerCamera(Device):
 
@@ -100,7 +99,7 @@ class BaslerCamera(Device):
 
         while self.camera_object.IsGrabbing():
             with self.camera_object.RetrieveResult(self.grab_timeout.get(), pylon.TimeoutHandling_ThrowException) as res:
-                
+
                 if res.GrabSucceeded():
                     image = np.array(res.Array)
                 else:
