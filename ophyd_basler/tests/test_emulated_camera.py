@@ -17,7 +17,7 @@ def test_emulated_basler_camera(RE, db, make_dirs):
 
     for exposure_seconds in [0.2, 2]:
 
-        emulated_basler_camera.exposure_time.put(exposure_seconds) 
+        emulated_basler_camera.exposure_time.put(exposure_seconds)
 
         (uid,) = RE(bp.count([emulated_basler_camera], num=3))
         hdr = db[uid]
