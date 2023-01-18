@@ -85,18 +85,6 @@ class BaslerCamera(Device):
 
     def grab_image(self):
 
-        # Exposure time can't be less than self.camera_object.ExposureTime.Min.
-        # We use seconds for ophyd, and microseconds for pylon:
-        min_exposure_us = self.camera_object.ExposureTimeAbs.Min
-        if min_exposure_us > 1e6 * self.exposure_time.get():
-            self.exposure_time.put(1e-6 * min_exposure_us)
-            warnings.warn(
-                f"Desired exposure time ({1e6 * self.exposure_time.get()} us) is less than "
-                f"the minimum exposure time ({min_exposure_us} us). Proceeding with minimum exposure time."
-            )
-
-        self.camera_object.ExposureTimeAbs.SetValue(1e6 * self.exposure_time.get())
-
         self.camera_object.StartGrabbingMax(1)
 
         while self.camera_object.IsGrabbing():
@@ -173,6 +161,18 @@ class BaslerCamera(Device):
         self._counter = itertools.count()
 
         self.camera_object.Open()
+
+        # Exposure time can't be less than self.camera_object.ExposureTime.Min.
+        # We use seconds for ophyd, and microseconds for pylon:
+        min_exposure_us = self.camera_object.ExposureTimeAbs.Min
+        if min_exposure_us > 1e6 * self.exposure_time.get():
+            self.exposure_time.put(1e-6 * min_exposure_us)
+            warnings.warn(
+                f"Desired exposure time ({1e6 * self.exposure_time.get()} us) is less than "
+                f"the minimum exposure time ({min_exposure_us} us). Proceeding with minimum exposure time."
+            )
+
+        self.camera_object.ExposureTimeAbs.SetValue(1e6 * self.exposure_time.get())
 
     def unstage(self):
 
