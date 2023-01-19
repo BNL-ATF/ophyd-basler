@@ -1,6 +1,7 @@
 import datetime
 import itertools
 import logging
+import warnings
 from collections import deque
 from pathlib import Path
 
@@ -21,7 +22,7 @@ class BaslerCamera(Device):
 
     image = Cpt(ExternalFileReference, kind="normal")
     mean = Cpt(Signal, kind="hinted")
-    exposure_frames = Cpt(Signal, value=1, kind="config")  # TODO: change this to exposure time at some point
+    exposure_time = Cpt(Signal, value=1.0, kind="config")  # exposure time, in seconds
     user_defined_name = Cpt(Signal, kind="config")
     camera_model = Cpt(Signal, kind="config")
     serial_number = Cpt(Signal, kind="config")
@@ -30,6 +31,7 @@ class BaslerCamera(Device):
     pixel_level_max = Cpt(Signal, kind="config")
     active_format = Cpt(Signal, kind="config")
     payload_size = Cpt(Signal, kind="config")
+    grab_timeout = Cpt(Signal, value=5000, kind="config")
 
     def __init__(self, *args, root_dir="/tmp/basler", cam_num=0, pixel_format="Mono8", verbose=False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -61,7 +63,6 @@ class BaslerCamera(Device):
         self.payload_size.put(self.camera_object.PayloadSize())
 
         # these are hardcoded for now, but should make them more flexible in the future
-        self.grab_timeout = 5000
         trigger_mode = "Off"
 
         self.camera_object.TriggerMode.SetValue(trigger_mode)
@@ -78,49 +79,46 @@ class BaslerCamera(Device):
             print("Pixel format                :", self.active_format.get())
             print("Camera min. pixel level     :", self.pixel_level_min.get())
             print("Camera max. pixel level     :", self.pixel_level_max.get())
-            print("Grab timeout                :", self.grab_timeout, "ms")
+            print("Grab timeout                :", self.grab_timeout.get(), "ms")
             print("Trigger mode                :", trigger_mode)
             print("GigE transport payload size : " + "{:,}".format(self.payload_size.get()) + " bytes")
 
-    def grab_images(self):
+    def grab_image(self):
 
-        self.camera_object.StartGrabbingMax(self.exposure_frames.get())
-        images = []
+        self.camera_object.StartGrabbingMax(1)
 
         while self.camera_object.IsGrabbing():
-            grab_result = self.camera_object.RetrieveResult(
-                self.grab_timeout, pylon.TimeoutHandling_ThrowException
-            )
-            if grab_result.GrabSucceeded():
-                image = grab_result.Array
-                images.append(image)
+            with self.camera_object.RetrieveResult(
+                self.grab_timeout.get(), pylon.TimeoutHandling_ThrowException
+            ) as res:
 
-            grab_result.Release()
-
-        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} grabbed {len(images)} frames")
+                if res.GrabSucceeded():
+                    image = np.array(res.Array)
+                else:
+                    raise Exception("Could not grab image with pylon")
 
         self.camera_object.StopGrabbing()
-        return np.array(images)
+
+        # print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} grabbed a frame with pylon")
+        return image
 
     def trigger(self):
 
         super().trigger()
-        images = self.grab_images()
+        image = self.grab_image()
 
-        logger.debug(f"original shape: {images.shape}")
-        # Averaging over all frames and summing 3 RGB channels
-        averaged = images.mean(axis=0)
+        logger.debug(f"original shape: {image.shape}")
 
         current_frame = next(self._counter)
         self._dataset.resize((current_frame + 1, *self.image_shape.get()))
         logger.debug(f"{self._dataset = }\n{self._dataset.shape = }")
-        self._dataset[current_frame, :, :] = averaged
+        self._dataset[current_frame, :, :] = image
 
         datum_document = self._datum_factory(datum_kwargs={"frame": current_frame})
         self._asset_docs_cache.append(("datum", datum_document))
 
         self.image.put(datum_document["datum_id"])
-        self.mean.put(averaged.mean())
+        self.mean.put(image.mean())
 
         super().trigger()
         return NullStatus()
@@ -163,6 +161,18 @@ class BaslerCamera(Device):
         self._counter = itertools.count()
 
         self.camera_object.Open()
+
+        # Exposure time can't be less than self.camera_object.ExposureTime.Min.
+        # We use seconds for ophyd, and microseconds for pylon:
+        min_exposure_us = self.camera_object.ExposureTimeAbs.Min
+        if min_exposure_us > 1e6 * self.exposure_time.get():
+            self.exposure_time.put(1e-6 * min_exposure_us)
+            warnings.warn(
+                f"Desired exposure time ({1e6 * self.exposure_time.get()} us) is less than "
+                f"the minimum exposure time ({min_exposure_us} us). Proceeding with minimum exposure time."
+            )
+
+        self.camera_object.ExposureTimeAbs.SetValue(1e6 * self.exposure_time.get())
 
     def unstage(self):
 
