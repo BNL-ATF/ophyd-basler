@@ -1,10 +1,13 @@
 import datetime
 import itertools
 import logging
+import os
+import tempfile
 import warnings
 from collections import deque
 from pathlib import Path
 
+import cv2
 import h5py
 import numpy as np
 from event_model import compose_resource
@@ -83,6 +86,23 @@ class BaslerCamera(Device):
             print("Grab timeout                :", self.grab_timeout.get(), "ms")
             print("Trigger mode                :", trigger_mode)
             print("GigE transport payload size : " + "{:,}".format(self.payload_size.get()) + " bytes")
+
+    def set_custom_images(self, images):
+
+        img_dir = tempfile.mkdtemp()
+        for i, image in enumerate(images):
+            cv2.imwrite(os.path.join(img_dir, "pattern_%03d.png" % i), image)
+
+        self.camera_object.Open()
+
+        self.camera_object.ImageFilename = img_dir
+        self.camera_object.ImageFileMode = "On"
+        self.camera_object.TestImageSelector = "Off"  # disable testpattern [ image file is "real-image"]
+        self.camera_object.PixelFormat = (
+            "Mono8"  # choose one pixel format. camera emulation does conversion on the fly
+        )
+
+        self.camera_object.Close()
 
     def grab_image(self):
 

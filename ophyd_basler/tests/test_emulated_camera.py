@@ -4,10 +4,9 @@ import bluesky.plans as bp
 import numpy as np
 import pytest
 
-from examples import prepare_emulated_basler_env
-
 import ophyd_basler
 from ophyd_basler.basler_camera import BaslerCamera
+from ophyd_basler.custom_images import get_wandering_gaussian_beam
 
 
 @pytest.mark.parametrize("exposure_seconds", [0.2, 2])
@@ -18,6 +17,10 @@ def test_emulated_basler_camera(RE, db, make_dirs, exposure_seconds, num_counts=
 
     emulated_basler_camera = BaslerCamera(cam_num=0, verbose=True, name="basler_cam")
 
+    ny, nx = emulated_basler_camera.image_shape.get()
+    WGB = get_wandering_gaussian_beam(nf=256, nx=nx, ny=ny)
+
+    emulated_basler_camera.set_custom_images(WGB)
     emulated_basler_camera.exposure_time.put(exposure_seconds)
 
     (uid,) = RE(bp.count([emulated_basler_camera], num=num_counts))
