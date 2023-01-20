@@ -9,3 +9,4 @@ matplotlib
 numpy
 ophyd
 pypylon
+opencv-python
