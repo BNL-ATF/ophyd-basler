@@ -28,8 +28,3 @@ RE.subscribe(bec)
 
 device_metadata, devices = ophyd_basler.available_devices()
 print(device_metadata)
-
-emulated_basler_camera = BaslerCamera(cam_num=0, verbose=True, root_dir=root_dir, name="basler_cam")
-# (uid,) = RE(bp.count([emulated_basler_camera], num=3))
-# hdr = db[uid]
-# data = np.array(list(hdr.data(field="basler_cam_image", fill=True)))

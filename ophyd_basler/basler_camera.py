@@ -22,7 +22,7 @@ class BaslerCamera(Device):
 
     image = Cpt(ExternalFileReference, kind="normal")
     mean = Cpt(Signal, kind="hinted")
-    exposure_time = Cpt(Signal, value=1.0, kind="config")  # exposure time, in seconds
+    exposure_time = Cpt(Signal, value=1000, kind="config")  # exposure time, in milliseconds
     user_defined_name = Cpt(Signal, kind="config")
     camera_model = Cpt(Signal, kind="config")
     serial_number = Cpt(Signal, kind="config")
@@ -43,6 +43,7 @@ class BaslerCamera(Device):
         self._datum_factory = None
 
         self.pixel_format = pixel_format
+        self.verbose = verbose
 
         transport_layer_factory = pylon.TlFactory.GetInstance()
         device_info_list = transport_layer_factory.EnumerateDevices()
@@ -70,7 +71,7 @@ class BaslerCamera(Device):
 
         self.camera_object.Close()
 
-        if verbose:
+        if self.verbose:
 
             print("User-defined camera name    :", self.user_defined_name.get())
             print("Camera model                :", self.camera_model.get())
@@ -104,8 +105,14 @@ class BaslerCamera(Device):
 
     def trigger(self):
 
+        if self.verbose:
+            print(f"started trigger @ {datetime.datetime.now().isoformat()}")
+
         super().trigger()
         image = self.grab_image()
+
+        if self.verbose:
+            print(f"finisihed trigger @ {datetime.datetime.now().isoformat()}")
 
         logger.debug(f"original shape: {image.shape}")
 
@@ -151,7 +158,7 @@ class BaslerCamera(Device):
         self._h5file_desc = h5py.File(self._data_file, "x")
         group = self._h5file_desc.create_group("/entry")
         self._dataset = group.create_dataset(
-            "averaged",
+            "image",
             data=np.full(fill_value=np.nan, shape=(1, *self.image_shape.get())),
             maxshape=(None, *self.image_shape.get()),
             chunks=(1, *self.image_shape.get()),
@@ -165,10 +172,10 @@ class BaslerCamera(Device):
         # Exposure time can't be less than self.camera_object.ExposureTime.Min.
         # We use seconds for ophyd, and microseconds for pylon:
         min_exposure_us = self.camera_object.ExposureTimeAbs.Min
-        if min_exposure_us > 1e6 * self.exposure_time.get():
-            self.exposure_time.put(1e-6 * min_exposure_us)
+        if min_exposure_us > 1e3 * self.exposure_time.get():
+            self.exposure_time.put(1e-3 * min_exposure_us)
             warnings.warn(
-                f"Desired exposure time ({1e6 * self.exposure_time.get()} us) is less than "
+                f"Desired exposure time ({1e3 * self.exposure_time.get()} us) is less than "
                 f"the minimum exposure time ({min_exposure_us} us). Proceeding with minimum exposure time."
             )
 

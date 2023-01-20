@@ -10,5 +10,5 @@ class BaslerCamHDF5Handler(HandlerBase):
 
     def __call__(self, frame):
         with h5py.File(self._name, "r") as f:
-            entry = f["/entry/averaged"]
+            entry = f["/entry/image"]
             return entry[frame]

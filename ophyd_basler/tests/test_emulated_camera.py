@@ -4,6 +4,8 @@ import bluesky.plans as bp
 import numpy as np
 import pytest
 
+from examples import prepare_emulated_basler_env
+
 import ophyd_basler
 from ophyd_basler.basler_camera import BaslerCamera
 
@@ -14,11 +16,11 @@ def test_emulated_basler_camera(RE, db, make_dirs, exposure_seconds, num_counts=
 
     print(ophyd_basler.available_devices())
 
-    basler_cam = BaslerCamera(cam_num=0, verbose=True, name="basler_cam")
+    emulated_basler_camera = BaslerCamera(cam_num=0, verbose=True, name="basler_cam")
 
-    basler_cam.exposure_time.put(exposure_seconds)
+    emulated_basler_camera.exposure_time.put(exposure_seconds)
 
-    (uid,) = RE(bp.count([basler_cam], num=num_counts))
+    (uid,) = RE(bp.count([emulated_basler_camera], num=num_counts))
 
     hdr = db[uid]
     tbl = hdr.table()
@@ -30,4 +32,7 @@ def test_emulated_basler_camera(RE, db, make_dirs, exposure_seconds, num_counts=
 
     assert (durations > exposure_seconds).all() and (durations < exposure_seconds + 0.1).all()
 
-    assert np.array(list(hdr.data(field="basler_cam_image", fill=True))).shape == (num_counts, 1040, 1024)
+    images = np.array(list(hdr.data(field="basler_cam_image", fill=True)))
+    print(images)
+
+    assert images.shape == (num_counts, 1040, 1024)
