@@ -97,7 +97,7 @@ class BaslerCamera(Device):
 
         self.camera_object.ImageFilename = img_dir
         self.camera_object.ImageFileMode = "On"
-        self.camera_object.TestImageSelector = "Off"  # disable testpattern [ image file is "real-image"]
+        self.camera_object.TestImageSelector = "Off"  # disable testpattern [image file is "real-image"]
         self.camera_object.PixelFormat = (
             "Mono8"  # choose one pixel format. camera emulation does conversion on the fly
         )
