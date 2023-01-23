@@ -126,13 +126,13 @@ class BaslerCamera(Device):
     def trigger(self):
 
         if self.verbose:
-            print(f"started trigger @ {datetime.datetime.now().isoformat()}")
+            logger.debug(f"started trigger @ {datetime.datetime.now().isoformat()}")
 
         super().trigger()
         image = self.grab_image()
 
         if self.verbose:
-            print(f"finisihed trigger @ {datetime.datetime.now().isoformat()}")
+            logger.debug(f"finisihed trigger @ {datetime.datetime.now().isoformat()}")
 
         logger.debug(f"original shape: {image.shape}")
 
@@ -191,15 +191,31 @@ class BaslerCamera(Device):
 
         # Exposure time can't be less than self.camera_object.ExposureTime.Min.
         # We use seconds for ophyd, and microseconds for pylon:
-        min_exposure_us = self.camera_object.ExposureTimeAbs.Min
-        if min_exposure_us > 1e3 * self.exposure_time.get():
-            self.exposure_time.put(1e-3 * min_exposure_us)
-            warnings.warn(
-                f"Desired exposure time ({1e3 * self.exposure_time.get()} us) is less than "
-                f"the minimum exposure time ({min_exposure_us} us). Proceeding with minimum exposure time."
-            )
+        if not self.camera_object.ExposureTimeAbs == 1e3 * self.exposure_time.get():
 
-        self.camera_object.ExposureTimeAbs.SetValue(1e6 * self.exposure_time.get())
+            if self.verbose:
+                logger.debug(f"Setting exposure time to {self.exposure_time.get()} ms")
+
+            min_exposure_us = self.camera_object.ExposureTimeAbs.Min
+            max_exposure_us = self.camera_object.ExposureTimeAbs.Max
+
+            # If the requested value is less than the minimum exposure time, use the minimum exposure time 
+            if min_exposure_us > 1e3 * self.exposure_time.get():
+                self.exposure_time.put(1e-3 * min_exposure_us)
+                warnings.warn(
+                    f"Desired exposure time ({1e3 * self.exposure_time.get()} us) is less than "
+                    f"the minimum exposure time ({min_exposure_us} us). Proceeding with minimum exposure time."
+                )
+
+            elif max_exposure_us < 1e3 * self.exposure_time.get():
+                self.exposure_time.put(1e-3 * max_exposure_us)
+                warnings.warn(
+                    f"Desired exposure time ({1e3 * self.exposure_time.get()} us) is greater than "
+                    f"the maximum exposure time ({max_exposure_us} us). Proceeding with maximum exposure time."
+                )
+                
+            else:
+                self.camera_object.ExposureTimeAbs.SetValue(1e3 * self.exposure_time.get())
 
     def unstage(self):
 
