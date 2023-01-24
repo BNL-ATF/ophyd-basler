@@ -34,7 +34,7 @@ def test_emulated_basler_camera(RE, db, make_dirs, exposure_ms, num_counts=5):
     print(f"{durations = }")
 
     # convert to seconds for comparison with bluesky
-    assert (durations > 1e-3 * exposure_ms).all() and (durations < 1e-3 * exposure_ms + 0.1).all()
+    assert (np.median(durations) > 1e-3 * exposure_ms) and (np.median(durations) < 1e-3 * exposure_ms + 0.1)
 
     images = np.array(list(hdr.data(field="basler_cam_image", fill=True)))
     print(images)

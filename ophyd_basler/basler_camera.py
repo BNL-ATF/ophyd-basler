@@ -199,7 +199,7 @@ class BaslerCamera(Device):
             min_exposure_us = self.camera_object.ExposureTimeAbs.Min
             max_exposure_us = self.camera_object.ExposureTimeAbs.Max
 
-            # If the requested value is less than the minimum exposure time, use the minimum exposure time
+            # If the requested value is less than the minimum exposure time, use the minimum exposure time.
             if min_exposure_us > 1e3 * self.exposure_time.get():
                 self.exposure_time.put(1e-3 * min_exposure_us)
                 warnings.warn(
@@ -207,6 +207,7 @@ class BaslerCamera(Device):
                     f"the minimum exposure time ({min_exposure_us} us). Proceeding with minimum exposure time."
                 )
 
+            # If the requested value is greater than the maximum exposure time, use the maximum exposure time.
             elif max_exposure_us < 1e3 * self.exposure_time.get():
                 self.exposure_time.put(1e-3 * max_exposure_us)
                 warnings.warn(
