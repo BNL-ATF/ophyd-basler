@@ -87,14 +87,24 @@ class BaslerCamera(Device):
             print("Trigger mode                :", trigger_mode)
             print("GigE transport payload size : " + "{:,}".format(self.payload_size.get()) + " bytes")
 
-    def set_custom_images(self, images):
+    def set_custom_images(self, images=None, img_dir=None):
 
-        img_dir = tempfile.mkdtemp()
-        for i, image in enumerate(images):
-            cv2.imwrite(os.path.join(img_dir, "pattern_%03d.png" % i), image)
+        if images is None and img_dir is None:
+            raise ValueError(
+                "Either the 'images' kwarg should be used to "
+                "specify an array of images, or the 'img_dir' kwarg "
+                "with the existing directory of images should be "
+                "passed."
+            )
+        if images is not None:
+            img_dir = tempfile.mkdtemp()
+            logger.info(f"Using '{img_dir}' to save {len(images)} images to.")
+            for i, image in enumerate(images):
+                cv2.imwrite(os.path.join(img_dir, "pattern_%03d.png" % i), image)
+        elif img_dir is not None:
+            logger.info(f"Using '{img_dir}' with existing images.")
 
         self.camera_object.Open()
-
         self.camera_object.ImageFilename = img_dir
         self.camera_object.ImageFileMode = "On"
         self.camera_object.TestImageSelector = "Off"  # disable testpattern [image file is "real-image"]
@@ -120,25 +130,27 @@ class BaslerCamera(Device):
 
         self.camera_object.StopGrabbing()
 
-        # print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} grabbed a frame with pylon")
+        logger.debug(f"grabbed a frame with the shape {image.shape}")
+        logger.debug(f"{np.where(image.max()) = }  |  {image.max() = }")
         return image
 
     def trigger(self):
 
-        if self.verbose:
-            logger.debug(f"started trigger @ {datetime.datetime.now().isoformat()}")
+        logger.debug("started trigger")
 
         super().trigger()
+        logger.debug("started grabbing")
         image = self.grab_image()
 
-        if self.verbose:
-            logger.debug(f"finisihed trigger @ {datetime.datetime.now().isoformat()}")
+        logger.debug("finisihed grabbing")
 
         logger.debug(f"original shape: {image.shape}")
 
         current_frame = next(self._counter)
         self._dataset.resize((current_frame + 1, *self.image_shape.get()))
+
         logger.debug(f"{self._dataset = }\n{self._dataset.shape = }")
+
         self._dataset[current_frame, :, :] = image
 
         datum_document = self._datum_factory(datum_kwargs={"frame": current_frame})
@@ -148,6 +160,9 @@ class BaslerCamera(Device):
         self.mean.put(image.mean())
 
         super().trigger()
+
+        logger.debug("finisihed trigger")
+
         return NullStatus()
 
     def stage(self):
@@ -188,6 +203,11 @@ class BaslerCamera(Device):
         self._counter = itertools.count()
 
         self.camera_object.Open()
+
+        if self.camera_object.DeviceInfo.GetModelName() == "Emulation":
+            # This setting makes sure we continue our iteration over the set of
+            # predefined images on each trigger.
+            self.camera_object.AcquisitionMode.SetValue("SingleFrame")
 
         # Exposure time can't be less than self.camera_object.ExposureTime.Min.
         # We use seconds for ophyd, and microseconds for pylon:
