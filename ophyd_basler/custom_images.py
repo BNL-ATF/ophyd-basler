@@ -13,10 +13,13 @@ def gaussian_2d(x, y, a, cx, cy, sx, sy):
     return a * np.exp(-0.5 * (np.square((x - cx) / sx) + np.square((y - cy) / sy)))
 
 
-def get_wandering_gaussian_beam(nf, nx, ny):
+def get_wandering_gaussian_beam(nf, nx, ny, seed=0):
     """
-    Generates a slowly-fluctuating Gaussian beam, and returns it in an array of images with shape (nf, ny, nx).
+    Generates a slowly-fluctuating Gaussian beam, and returns it in an array of
+    images with shape (nf, ny, nx).
     """
+
+    rng = np.random.default_rng(seed)
 
     # hard-coded for now
     time_scale = 64
@@ -28,7 +31,7 @@ def get_wandering_gaussian_beam(nf, nx, ny):
     ps = np.exp(-np.square(np.fft.fftfreq(nf) * time_scale))
 
     # scale some Fourier-transformed white noise, and Fourier transform back to get correlated beam parameters
-    beam_params = np.real(np.fft.ifft(ps * np.fft.fft(np.random.standard_normal(size=(5, nf)))))
+    beam_params = np.real(np.fft.ifft(ps * np.fft.fft(rng.standard_normal(size=(5, nf)))))
 
     # scale the generated data so that it varies between the specified bounds
     beam_params -= beam_params.min(axis=1)[:, None]

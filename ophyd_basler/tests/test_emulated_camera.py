@@ -18,7 +18,7 @@ def test_emulated_basler_camera(RE, db, make_dirs, exposure_ms, num_counts=5):
     emulated_basler_camera = BaslerCamera(cam_num=0, verbose=True, name="basler_cam")
 
     ny, nx = emulated_basler_camera.image_shape.get()
-    WGB = get_wandering_gaussian_beam(nf=256, nx=nx, ny=ny)
+    WGB = get_wandering_gaussian_beam(nf=256, nx=nx, ny=ny, seed=6313448000)
 
     emulated_basler_camera.set_custom_images(WGB)
     emulated_basler_camera.exposure_time.put(exposure_ms)
