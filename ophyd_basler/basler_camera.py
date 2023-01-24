@@ -1,10 +1,13 @@
 import datetime
 import itertools
 import logging
+import os
+import tempfile
 import warnings
 from collections import deque
 from pathlib import Path
 
+import cv2
 import h5py
 import numpy as np
 from event_model import compose_resource
@@ -22,7 +25,7 @@ class BaslerCamera(Device):
 
     image = Cpt(ExternalFileReference, kind="normal")
     mean = Cpt(Signal, kind="hinted")
-    exposure_time = Cpt(Signal, value=1.0, kind="config")  # exposure time, in seconds
+    exposure_time = Cpt(Signal, value=1000, kind="config")  # exposure time, in milliseconds
     user_defined_name = Cpt(Signal, kind="config")
     camera_model = Cpt(Signal, kind="config")
     serial_number = Cpt(Signal, kind="config")
@@ -33,24 +36,39 @@ class BaslerCamera(Device):
     payload_size = Cpt(Signal, kind="config")
     grab_timeout = Cpt(Signal, value=5000, kind="config")
 
-    def __init__(self, *args, root_dir="/tmp/basler", cam_num=0, pixel_format="Mono8", verbose=False, **kwargs):
+    def __init__(
+        self,
+        *args,
+        root_dir="/tmp/basler",
+        cam_num=0,
+        pixel_format="Mono8",
+        trigger_mode="Off",
+        verbose=False,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
 
         self._root_dir = root_dir
+        self._cam_num = cam_num
+        self._pixel_format = pixel_format
+        self._trigger_mode = trigger_mode
+        self._verbose = verbose
 
+        # Used for the emulated cameras only.
+        self._img_dir = None
+
+        # Resource/datum docs related variables.
         self._asset_docs_cache = deque()
         self._resource_document = None
         self._datum_factory = None
 
-        self.pixel_format = pixel_format
-
         transport_layer_factory = pylon.TlFactory.GetInstance()
         device_info_list = transport_layer_factory.EnumerateDevices()
-        self.device_info = device_info_list[cam_num]
+        self.device_info = device_info_list[self._cam_num]
         self.device = transport_layer_factory.CreateDevice(self.device_info)
         self.camera_object = pylon.InstantCamera(self.device)
 
-        # temporarily open the camera to read the metadata
+        # Temporarily open the camera to read the metadata
         self.camera_object.Open()
 
         self.user_defined_name.put(self.camera_object.GetDeviceInfo().GetUserDefinedName())
@@ -62,26 +80,64 @@ class BaslerCamera(Device):
         self.active_format.put(self.camera_object.PixelFormat.GetValue())
         self.payload_size.put(self.camera_object.PayloadSize())
 
-        # these are hardcoded for now, but should make them more flexible in the future
-        trigger_mode = "Off"
-
-        self.camera_object.TriggerMode.SetValue(trigger_mode)
-        self.camera_object.PixelFormat.SetValue(self.pixel_format)
+        self.camera_object.TriggerMode.SetValue(self._trigger_mode)
+        self.camera_object.PixelFormat.SetValue(self._pixel_format)
 
         self.camera_object.Close()
 
-        if verbose:
+        if self._verbose:
+            print(f"User-defined camera name    : {self.user_defined_name.get()}")
+            print(f"Camera model                : {self.camera_model.get()}")
+            print(f"Camera serial number        : {self.serial_number.get()}")
+            print(f"Image shape (height, width) : {self.image_shape.get()} pixels")
+            print(f"Pixel format                : {self.active_format.get()}")
+            print(f"Camera min. pixel level     : {self.pixel_level_min.get()}")
+            print(f"Camera max. pixel level     : {self.pixel_level_max.get()}")
+            print(f"Grab timeout                : {self.grab_timeout.get()} ms")
+            print(f"Trigger mode                : {self._trigger_mode}")
+            print(f"GigE transport payload size : {self.payload_size.get():,} bytes")
 
-            print("User-defined camera name    :", self.user_defined_name.get())
-            print("Camera model                :", self.camera_model.get())
-            print("Camera serial number        :", self.serial_number.get())
-            print("Image shape (height, width) :", self.image_shape.get(), "pixels")
-            print("Pixel format                :", self.active_format.get())
-            print("Camera min. pixel level     :", self.pixel_level_min.get())
-            print("Camera max. pixel level     :", self.pixel_level_max.get())
-            print("Grab timeout                :", self.grab_timeout.get(), "ms")
-            print("Trigger mode                :", trigger_mode)
-            print("GigE transport payload size : " + "{:,}".format(self.payload_size.get()) + " bytes")
+    def set_custom_images(self, images=None, img_dir=None):
+        """
+        Set custom images for the emulated camera either via an ndarray or a
+        directory with images.
+
+        Parameters
+        ----------
+        images : ndarray
+            an ndarray of the image data the images shaped as (num_frames, ny, nx)
+        img_dir : str
+            a directory name with a series of image files.
+        """
+
+        if images is None and img_dir is None:
+            raise ValueError(
+                "Either the 'images' kwarg should be used to "
+                "specify an array of images, or the 'img_dir' kwarg "
+                "with the existing directory of images should be "
+                "passed."
+            )
+        if images is not None:
+            img_dir = tempfile.mkdtemp()
+            logger.info(f"Using '{img_dir}' to save {len(images)} images to.")
+            for i, image in enumerate(images):
+                cv2.imwrite(os.path.join(img_dir, "pattern_%03d.png" % i), image)
+            logger.info(f"Saved {len(os.listdir(img_dir))} images into '{img_dir}'")
+
+        elif img_dir is not None:
+            logger.info(f"Using '{img_dir}' with the existing {len(os.listdir(img_dir))} images.")
+
+        self._img_dir = img_dir
+
+        self.camera_object.Open()
+        self.camera_object.ImageFilename = img_dir
+        self.camera_object.ImageFileMode = "On"
+        self.camera_object.TestImageSelector = "Off"  # disable testpattern [image file is "real-image"]
+        self.camera_object.PixelFormat = (
+            "Mono8"  # choose one pixel format; camera emulation does conversion on the fly
+        )
+
+        self.camera_object.Close()
 
     def grab_image(self):
 
@@ -99,19 +155,26 @@ class BaslerCamera(Device):
 
         self.camera_object.StopGrabbing()
 
-        # print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')} grabbed a frame with pylon")
+        logger.debug(f"grabbed a frame with the shape {image.shape}")
+        logger.debug(f"{np.where(image.max()) = }  |  {image.max() = }")
         return image
 
     def trigger(self):
 
+        logger.debug("started trigger")
+
         super().trigger()
+        logger.debug("started grabbing")
         image = self.grab_image()
 
+        logger.debug("finisihed grabbing")
         logger.debug(f"original shape: {image.shape}")
 
         current_frame = next(self._counter)
         self._dataset.resize((current_frame + 1, *self.image_shape.get()))
+
         logger.debug(f"{self._dataset = }\n{self._dataset.shape = }")
+
         self._dataset[current_frame, :, :] = image
 
         datum_document = self._datum_factory(datum_kwargs={"frame": current_frame})
@@ -121,6 +184,9 @@ class BaslerCamera(Device):
         self.mean.put(image.mean())
 
         super().trigger()
+
+        logger.debug("finisihed trigger")
+
         return NullStatus()
 
     def stage(self):
@@ -151,7 +217,7 @@ class BaslerCamera(Device):
         self._h5file_desc = h5py.File(self._data_file, "x")
         group = self._h5file_desc.create_group("/entry")
         self._dataset = group.create_dataset(
-            "averaged",
+            "image",
             data=np.full(fill_value=np.nan, shape=(1, *self.image_shape.get())),
             maxshape=(None, *self.image_shape.get()),
             chunks=(1, *self.image_shape.get()),
@@ -162,17 +228,39 @@ class BaslerCamera(Device):
 
         self.camera_object.Open()
 
+        if self.camera_object.DeviceInfo.GetModelName() == "Emulation":
+            # This setting makes sure we continue our iteration over the set of
+            # predefined images on each trigger.
+            self.camera_object.AcquisitionMode.SetValue("SingleFrame")
+
         # Exposure time can't be less than self.camera_object.ExposureTime.Min.
         # We use seconds for ophyd, and microseconds for pylon:
-        min_exposure_us = self.camera_object.ExposureTimeAbs.Min
-        if min_exposure_us > 1e6 * self.exposure_time.get():
-            self.exposure_time.put(1e-6 * min_exposure_us)
-            warnings.warn(
-                f"Desired exposure time ({1e6 * self.exposure_time.get()} us) is less than "
-                f"the minimum exposure time ({min_exposure_us} us). Proceeding with minimum exposure time."
-            )
+        if not self.camera_object.ExposureTimeAbs == 1e3 * self.exposure_time.get():
 
-        self.camera_object.ExposureTimeAbs.SetValue(1e6 * self.exposure_time.get())
+            if self._verbose:
+                logger.debug(f"Setting exposure time to {self.exposure_time.get()} ms")
+
+            min_exposure_us = self.camera_object.ExposureTimeAbs.Min
+            max_exposure_us = self.camera_object.ExposureTimeAbs.Max
+
+            # If the requested value is less than the minimum exposure time, use the minimum exposure time.
+            if min_exposure_us > 1e3 * self.exposure_time.get():
+                self.exposure_time.put(1e-3 * min_exposure_us)
+                warnings.warn(
+                    f"Desired exposure time ({1e3 * self.exposure_time.get()} us) is less than "
+                    f"the minimum exposure time ({min_exposure_us} us). Proceeding with minimum exposure time."
+                )
+
+            # If the requested value is greater than the maximum exposure time, use the maximum exposure time.
+            elif max_exposure_us < 1e3 * self.exposure_time.get():
+                self.exposure_time.put(1e-3 * max_exposure_us)
+                warnings.warn(
+                    f"Desired exposure time ({1e3 * self.exposure_time.get()} us) is greater than "
+                    f"the maximum exposure time ({max_exposure_us} us). Proceeding with maximum exposure time."
+                )
+
+            else:
+                self.camera_object.ExposureTimeAbs.SetValue(1e3 * self.exposure_time.get())
 
     def unstage(self):
 

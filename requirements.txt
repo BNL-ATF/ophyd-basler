@@ -7,5 +7,6 @@ h5py
 ipython
 matplotlib
 numpy
+opencv-python
 ophyd
 pypylon
