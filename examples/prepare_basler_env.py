@@ -3,7 +3,7 @@ from datetime import datetime
 
 import bluesky.plans as bp  # noqa F401
 import numpy as np  # noqa F401
-from bluesky.callbacks import BestEffortCallback
+from bluesky.callbacks.best_effort import BestEffortCallback
 from bluesky.run_engine import RunEngine
 from databroker import Broker
 from ophyd.utils import make_dir_tree
