@@ -204,9 +204,10 @@ class BaslerCamera(Device):
 
         self.camera_object.Open()
 
-        # This setting makes sure we continue our iteration over the set of
-        # predefined images on each trigger.
-        self.camera_object.AcquisitionMode.SetValue("SingleFrame")
+        if self.camera_object.DeviceInfo.GetModelName() == "Emulation":
+            # This setting makes sure we continue our iteration over the set of
+            # predefined images on each trigger.
+            self.camera_object.AcquisitionMode.SetValue("SingleFrame")
 
         # Exposure time can't be less than self.camera_object.ExposureTime.Min.
         # We use seconds for ophyd, and microseconds for pylon:
