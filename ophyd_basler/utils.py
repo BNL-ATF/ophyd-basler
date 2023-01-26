@@ -20,7 +20,7 @@ def configure_logger(logger, log_level=logging.DEBUG, handlers=[StreamHandler]):
         handler.setLevel(log_level)
 
 
-def plot_images(data, nrows=None, ncols=None):
+def plot_images(data, nrows=None, ncols=None, save_path=None):
     """
     Usage
     -----
@@ -43,3 +43,6 @@ def plot_images(data, nrows=None, ncols=None):
         for col in range(ncols):
             print(f"  {col = } --> {ax[row][col]}")
             ax[row][col].imshow(data[row * ncols + col], vmin=data.min(), vmax=data.max())
+
+    if save_path is not None:
+        plt.savefig(save_path)
