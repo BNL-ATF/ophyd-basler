@@ -71,3 +71,8 @@ jobs:
         run: |
           set -vxuo pipefail
           pytest -s -vv
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: test-artifacts
+          path: /tmp/test_emulated_basler_camera_exposure_ms*.png

@@ -1,4 +1,10 @@
+import os
+import tempfile
+
+import cv2
 import numpy as np
+
+from ophyd_basler.utils import logger_basler as logger
 
 
 def gaussian_2d(x, y, a, cx, cy, sx, sy):
@@ -42,3 +48,15 @@ def get_wandering_gaussian_beam(nf, nx, ny, seed=0):
     X, Y = np.meshgrid(np.arange(nx), np.arange(ny))
 
     return gaussian_2d(X[None, :, :], Y[None, :, :], *beam_params[:, :, None, None])
+
+
+def save_images(images, img_dir=None):
+    if img_dir is None:
+        img_dir = tempfile.mkdtemp()
+
+    logger.info(f"Using '{img_dir}' to save {len(images)} images to.")
+    for i, image in enumerate(images):
+        cv2.imwrite(os.path.join(img_dir, "pattern_%03d.png" % i), image)
+    logger.info(f"Saved {len(os.listdir(img_dir))} images into '{img_dir}'")
+
+    return img_dir
