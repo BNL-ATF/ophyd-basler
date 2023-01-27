@@ -1,13 +1,10 @@
 import datetime
 import itertools
-import logging
 import os
-import tempfile
 import warnings
 from collections import deque
 from pathlib import Path
 
-import cv2
 import h5py
 import numpy as np
 from event_model import compose_resource
@@ -17,8 +14,8 @@ from ophyd.sim import NullStatus, new_uid
 from pypylon import pylon
 
 from . import ExternalFileReference
-
-logger = logging.getLogger("basler")
+from .custom_images import save_images
+from .utils import logger_basler as logger
 
 
 class BaslerCamera(Device):
@@ -118,11 +115,7 @@ class BaslerCamera(Device):
                 "passed."
             )
         if images is not None:
-            img_dir = tempfile.mkdtemp()
-            logger.info(f"Using '{img_dir}' to save {len(images)} images to.")
-            for i, image in enumerate(images):
-                cv2.imwrite(os.path.join(img_dir, "pattern_%03d.png" % i), image)
-            logger.info(f"Saved {len(os.listdir(img_dir))} images into '{img_dir}'")
+            img_dir = save_images(images)
 
         elif img_dir is not None:
             logger.info(f"Using '{img_dir}' with the existing {len(os.listdir(img_dir))} images.")
