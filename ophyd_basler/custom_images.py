@@ -53,6 +53,9 @@ def get_wandering_gaussian_beam(nf, nx, ny, seed=0):
 def save_images(images, img_dir=None):
     if img_dir is None:
         img_dir = tempfile.mkdtemp()
+    else:
+        if not os.path.exists(img_dir):
+            os.makedirs(img_dir, exist_ok=True)
 
     logger.info(f"Using '{img_dir}' to save {len(images)} images to.")
     for i, image in enumerate(images):
