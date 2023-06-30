@@ -41,8 +41,24 @@ class BaslerCamera(Device):
         pixel_format="Mono8",
         trigger_mode="Off",
         verbose=False,
+        viewer=None,
         **kwargs,
     ):
+        """
+        A class to instantiate a Basler ophyd object.
+
+        To view the data live, we may add an optional viewer (napari).
+
+        Example:
+        --------
+            import napari
+
+            viewer = napari.Viewer()
+
+            layer = viewer.add_image(np.random.random((1024, 1056, 3)), rgb=True)
+            layer.data = np.random.random((1024, 1056, 3))
+            viewer.reset_view()
+        """
         super().__init__(*args, **kwargs)
 
         self._root_dir = root_dir
@@ -50,6 +66,7 @@ class BaslerCamera(Device):
         self._pixel_format = pixel_format
         self._trigger_mode = trigger_mode
         self._verbose = verbose
+        self._viewer = viewer
 
         # Used for the emulated cameras only.
         self._img_dir = None
@@ -81,6 +98,10 @@ class BaslerCamera(Device):
         self.camera_object.PixelFormat.SetValue(self._pixel_format)
 
         self.camera_object.Close()
+
+        if self._viewer is not None:
+            self._viewer_layer = self._viewer.add_image(np.zeros(self.image_shape.get(), dtype=float), rgb=False)
+            # TODO: sort out how to automatically set the auto-contrast.
 
         if self._verbose:
             print(f"User-defined camera name    : {self.user_defined_name.get()}")
@@ -159,6 +180,10 @@ class BaslerCamera(Device):
         super().trigger()
         logger.debug("started grabbing")
         image = self.grab_image()
+
+        if self._viewer is not None:
+            self._viewer_layer.data = image
+            self._viewer.reset_view()
 
         logger.debug("finisihed grabbing")
         logger.debug(f"original shape: {image.shape}")
