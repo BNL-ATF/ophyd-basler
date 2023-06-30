@@ -23,7 +23,6 @@ def db():
 
 @pytest.fixture(scope="function")
 def RE(db):
-
     RE = RunEngine({})
     bec = best_effort.BestEffortCallback()
     bec.disable_plots()
@@ -35,6 +34,5 @@ def RE(db):
 
 @pytest.fixture(scope="function")
 def make_dirs():
-
     root_dir = "/tmp/basler"
     _ = make_dir_tree(datetime.now().year, base_path=root_dir)
