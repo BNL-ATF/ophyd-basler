@@ -100,7 +100,9 @@ class BaslerCamera(Device):
 
         if self._viewer is not None:
             self._viewer_layer = self._viewer.add_image(np.zeros(self.image_shape.get(), dtype=float), rgb=False)
-            # TODO: sort out how to automatically set the auto-contrast.
+            # self._viewer_layer._keep_auto_contrast = True  # solves the issue, but it's private
+            self._viewer_layer.contrast_limits = [self.pixel_level_min.get(), self.pixel_level_max.get()]
+            self._viewer.text_overlay.text = f"Image shape: {self.image_shape.get()}"
 
         if self._verbose:
             print(f"User-defined camera name    : {self.user_defined_name.get()}")
@@ -177,14 +179,16 @@ class BaslerCamera(Device):
         logger.debug("started grabbing")
         image = self.grab_image()
 
+        current_frame = next(self._counter)
+
         if self._viewer is not None:
+            self._viewer.text_overlay.text = f"Image #{current_frame}: shape={image.shape}"
             self._viewer_layer.data = image
             self._viewer.reset_view()
 
         logger.debug("finisihed grabbing")
         logger.debug(f"original shape: {image.shape}")
 
-        current_frame = next(self._counter)
         self._dataset.resize((current_frame + 1, *self.image_shape.get()))
 
         logger.debug(f"{self._dataset = }\n{self._dataset.shape = }")
