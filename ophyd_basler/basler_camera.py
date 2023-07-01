@@ -40,23 +40,10 @@ class BaslerCamera(Device):
         pixel_format="Mono8",
         trigger_mode="Off",
         verbose=False,
-        viewer=None,
         **kwargs,
     ):
         """
         A class to instantiate a Basler ophyd object.
-
-        To view the data live, we may add an optional viewer (napari).
-
-        Example:
-        --------
-            import napari
-
-            viewer = napari.Viewer()
-
-            layer = viewer.add_image(np.random.random((1024, 1056, 3)), rgb=True)
-            layer.data = np.random.random((1024, 1056, 3))
-            viewer.reset_view()
         """
         super().__init__(*args, **kwargs)
 
@@ -65,7 +52,6 @@ class BaslerCamera(Device):
         self._pixel_format = pixel_format
         self._trigger_mode = trigger_mode
         self._verbose = verbose
-        self._viewer = viewer
 
         # Used for the emulated cameras only.
         self._img_dir = None
@@ -97,12 +83,6 @@ class BaslerCamera(Device):
         self.camera_object.PixelFormat.SetValue(self._pixel_format)
 
         self.camera_object.Close()
-
-        if self._viewer is not None:
-            self._viewer_layer = self._viewer.add_image(np.zeros(self.image_shape.get(), dtype=float), rgb=False)
-            # self._viewer_layer._keep_auto_contrast = True  # solves the issue, but it's private
-            self._viewer_layer.contrast_limits = [self.pixel_level_min.get(), self.pixel_level_max.get()]
-            self._viewer.text_overlay.text = f"Image shape: {self.image_shape.get()}"
 
         if self._verbose:
             print(f"User-defined camera name    : {self.user_defined_name.get()}")
@@ -181,12 +161,7 @@ class BaslerCamera(Device):
 
         current_frame = next(self._counter)
 
-        if self._viewer is not None:
-            self._viewer.text_overlay.text = f"Image #{current_frame}: shape={image.shape}"
-            self._viewer_layer.data = image
-            self._viewer.reset_view()
-
-        logger.debug("finisihed grabbing")
+        logger.debug(f"finisihed grabbing frame {current_frame}")
         logger.debug(f"original shape: {image.shape}")
 
         self._dataset.resize((current_frame + 1, *self.image_shape.get()))
