@@ -38,7 +38,6 @@ def available_devices():
     devices = []
 
     for device_info in device_info_list:
-
         device = transport_layer_factory.CreateDevice(device_info)
         camera_object = pylon.InstantCamera(device)
         devices.append(camera_object)

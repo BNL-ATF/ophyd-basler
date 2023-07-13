@@ -6,6 +6,7 @@ event-model
 h5py
 ipython
 matplotlib
+napari[all]
 numpy
 opencv-python
 ophyd

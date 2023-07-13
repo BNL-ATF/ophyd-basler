@@ -19,7 +19,6 @@ from .utils import logger_basler as logger
 
 
 class BaslerCamera(Device):
-
     image = Cpt(ExternalFileReference, kind="normal")
     mean = Cpt(Signal, kind="hinted")
     exposure_time = Cpt(Signal, value=1000, kind="config")  # exposure time, in milliseconds
@@ -43,6 +42,9 @@ class BaslerCamera(Device):
         verbose=False,
         **kwargs,
     ):
+        """
+        A class to instantiate a Basler ophyd object.
+        """
         super().__init__(*args, **kwargs)
 
         self._root_dir = root_dir
@@ -133,14 +135,12 @@ class BaslerCamera(Device):
         self.camera_object.Close()
 
     def grab_image(self):
-
         self.camera_object.StartGrabbingMax(1)
 
         while self.camera_object.IsGrabbing():
             with self.camera_object.RetrieveResult(
                 self.grab_timeout.get(), pylon.TimeoutHandling_ThrowException
             ) as res:
-
                 if res.GrabSucceeded():
                     image = np.array(res.Array)
                 else:
@@ -153,17 +153,17 @@ class BaslerCamera(Device):
         return image
 
     def trigger(self):
-
         logger.debug("started trigger")
 
         super().trigger()
         logger.debug("started grabbing")
         image = self.grab_image()
 
-        logger.debug("finisihed grabbing")
+        current_frame = next(self._counter)
+
+        logger.debug(f"finisihed grabbing frame {current_frame}")
         logger.debug(f"original shape: {image.shape}")
 
-        current_frame = next(self._counter)
         self._dataset.resize((current_frame + 1, *self.image_shape.get()))
 
         logger.debug(f"{self._dataset = }\n{self._dataset.shape = }")
@@ -183,7 +183,6 @@ class BaslerCamera(Device):
         return NullStatus()
 
     def stage(self):
-
         super().stage()
         date = datetime.datetime.now()
         self._assets_dir = date.strftime("%Y/%m/%d")
@@ -229,7 +228,6 @@ class BaslerCamera(Device):
         # Exposure time can't be less than self.camera_object.ExposureTime.Min.
         # We use seconds for ophyd, and microseconds for pylon:
         if not self.camera_object.ExposureTimeAbs == 1e3 * self.exposure_time.get():
-
             if self._verbose:
                 logger.debug(f"Setting exposure time to {self.exposure_time.get()} ms")
 
@@ -256,7 +254,6 @@ class BaslerCamera(Device):
                 self.camera_object.ExposureTimeAbs.SetValue(1e3 * self.exposure_time.get())
 
     def unstage(self):
-
         self.camera_object.Close()
         super().unstage()
         del self._dataset
