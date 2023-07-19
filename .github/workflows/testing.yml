@@ -7,6 +7,8 @@ on:
 
 jobs:
   lint:
+    # pull requests are a duplicate of a branch push if within the same repo.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     name: Check code style
     runs-on: ubuntu-latest
     strategy:
@@ -30,10 +32,10 @@ jobs:
         run: pre-commit run --all-files
 
   run_tests:
-    needs: lint
     # pull requests are a duplicate of a branch push if within the same repo.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     name: Test pylon camera
+    needs: lint
     runs-on: ubuntu-latest
     strategy:
       matrix:
