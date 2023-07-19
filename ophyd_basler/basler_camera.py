@@ -52,10 +52,10 @@ class BaslerCamera(Device):
 
         if cam_name is not None:
             basler_device_metadata, _ = available_devices()
-            if cam_name in basler_device_metadata.user_defined_name:
-                self._cam_num = np.where(basler_device_metadata.user_defined_name == cam_name)[0]
+            if cam_name in basler_device_metadata.user_defined_name.values:
+                self._cam_num = np.where(basler_device_metadata.user_defined_name.values == cam_name)[0][0]
             else:
-                raise ValueError(f"{cam_num = } is not available!")
+                raise ValueError(f"{cam_name = } is not available!")
         else:
             self._cam_num = cam_num
 
