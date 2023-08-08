@@ -18,8 +18,6 @@ from .custom_images import save_images
 from .utils import logger_basler as logger
 
 
-
-
 class BaslerCamera(Device):
     image = Cpt(ExternalFileReference, kind="normal")
     mean = Cpt(Signal, kind="hinted")

@@ -21,7 +21,6 @@ def configure_logger(logger, log_level=logging.DEBUG, handlers=[StreamHandler]):
 
 
 def plot_fluxes(data, save_path=None):
-
     fig, ax = plt.subplots(nrows=1, ncols=1)
 
     for row in range(1):
