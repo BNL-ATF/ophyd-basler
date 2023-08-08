@@ -3,14 +3,43 @@ name: Tests
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
+  lint:
+    # pull requests are a duplicate of a branch push if within the same repo.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    name: Check code style
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+
+      - name: Install dev dependencies
+        run: |
+          set -vxeuo pipefail
+          python -m pip install -r requirements-dev.txt
+          python -m pip list
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files
+
   run_tests:
+    # pull requests are a duplicate of a branch push if within the same repo.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     name: Test pylon camera
+    needs: lint
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10"]
         pylon-version: ["5.2.0.13457-deb0_amd64"]
       fail-fast: false
     env:
