@@ -1,3 +1,4 @@
+import functools
 import logging
 from logging import StreamHandler
 
@@ -18,19 +19,6 @@ def configure_logger(logger, log_level=logging.DEBUG, handlers=[StreamHandler]):
         handler.setFormatter(logging.Formatter(fmt=log_file_format))
         logger.addHandler(handler)
         handler.setLevel(log_level)
-
-
-def plot_fluxes(data, save_path=None):
-    fig, ax = plt.subplots(nrows=1, ncols=1)
-
-    for row in range(1):
-        print(f"{row = }")
-        for col in range(1):
-            print(f"  {col = } --> {ax[row][col]}")
-            ax[row][col].imshow(data[row * 1 + col], vmin=data.min(), vmax=data.max())
-
-    if save_path is not None:
-        plt.savefig(save_path)
 
 
 def plot_images(data, nrows=None, ncols=None, save_path=None):
@@ -59,3 +47,6 @@ def plot_images(data, nrows=None, ncols=None, save_path=None):
 
     if save_path is not None:
         plt.savefig(save_path)
+
+
+plot_fluxes = functools.partial(plot_images, nrows=1, ncols=1)
