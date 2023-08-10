@@ -1,3 +1,4 @@
+import functools
 import logging
 from logging import StreamHandler
 
@@ -46,3 +47,6 @@ def plot_images(data, nrows=None, ncols=None, save_path=None):
 
     if save_path is not None:
         plt.savefig(save_path)
+
+
+plot_fluxes = functools.partial(plot_images, nrows=1, ncols=1)

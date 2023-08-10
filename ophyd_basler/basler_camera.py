@@ -13,7 +13,7 @@ from ophyd import Device, Signal
 from ophyd.sim import NullStatus, new_uid
 from pypylon import pylon
 
-from . import ExternalFileReference
+from . import ExternalFileReference, available_devices
 from .custom_images import save_images
 from .utils import logger_basler as logger
 
@@ -37,6 +37,7 @@ class BaslerCamera(Device):
         *args,
         root_dir="/tmp/basler",
         cam_num=0,
+        cam_name=None,
         pixel_format="Mono8",
         trigger_mode="Off",
         verbose=False,
@@ -47,8 +48,16 @@ class BaslerCamera(Device):
         """
         super().__init__(*args, **kwargs)
 
+        if cam_name is not None:
+            basler_device_metadata, _ = available_devices()
+            if cam_name in basler_device_metadata.user_defined_name.values:
+                self._cam_num = np.where(basler_device_metadata.user_defined_name.values == cam_name)[0][0]
+            else:
+                raise ValueError(f"{cam_name = } is not available!")
+        else:
+            self._cam_num = cam_num
+
         self._root_dir = root_dir
-        self._cam_num = cam_num
         self._pixel_format = pixel_format
         self._trigger_mode = trigger_mode
         self._verbose = verbose
